@@ -1,6 +1,6 @@
 *logs*
 *.idea*
-*.DS_*
+.DS_*
 *.vscode/
 
 # C extensions
