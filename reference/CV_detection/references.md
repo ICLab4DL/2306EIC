@@ -6,3 +6,7 @@
 0. 《Progressively Complementarity-Aware Fusion Network for RGB-D Salient Object Detection》
 0. 《Revisiting Salient Object Detection! Simultaneous Detection, Ranking, and Subitizing of Multiple Sal》
 0. 《Salient Object Detection Driven by Fixation Prediction》
+
+# progress of all SOD
+
+[SOD progress](https://www.ctolib.com/amp/jiwei0921-SOD-CNNs-based-code-summary-.html)
