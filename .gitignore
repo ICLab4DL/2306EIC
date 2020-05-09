@@ -2,6 +2,7 @@
 *.idea*
 .DS_*
 *.vscode/
+__pycache__
 
 # C extensions
 *.so
