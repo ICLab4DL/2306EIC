@@ -114,7 +114,4 @@ if __name__ == '__main__':
     for e in DATASETS:
         e = ROOT_PATH + e
         t = Test(dataset, e, SODNet)
-        #         t = Test(dataset, e, UGCPANet)
-        #         t = Test(dataset, e, MNet)
-        #         t.accuracy()
         t.save()
