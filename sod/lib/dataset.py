@@ -1,0 +1,136 @@
+#!/usr/bin/python3
+#coding=utf-8
+
+import os
+import cv2
+import numpy as np
+try:
+    from . import transform
+except:
+    import transform
+
+from torch.utils.data import Dataset
+import torch
+
+class Args:
+    cuda = False
+
+class Config(object):
+    def __init__(self, **kwargs):
+        self.kwargs    = kwargs
+        print('\nParameters...')
+        Args.cuda = kwargs['cuda']
+        for k, v in self.kwargs.items():
+            print('%-10s: %s'%(k, v))
+
+        if 'ECSSD' in self.kwargs['datapath']:
+            self.mean      = np.array([[[117.15, 112.48, 92.86]]])
+            self.std       = np.array([[[ 56.36,  53.82, 54.23]]])
+        elif 'DUTS' in self.kwargs['datapath']:
+            self.mean      = np.array([[[124.55, 118.90, 102.94]]])
+            self.std       = np.array([[[ 56.77,  55.97,  57.50]]])
+        elif 'DUT-OMRON' in self.kwargs['datapath']:
+            self.mean      = np.array([[[120.61, 121.86, 114.92]]])
+            self.std       = np.array([[[ 58.10,  57.16,  61.09]]])
+        elif 'MSRA-10K' in self.kwargs['datapath']:
+            self.mean      = np.array([[[115.57, 110.48, 100.00]]])
+            self.std       = np.array([[[ 57.55,  54.89,  55.30]]])
+        elif 'MSRA-B' in self.kwargs['datapath']:
+            self.mean      = np.array([[[114.87, 110.47,  95.76]]])
+            self.std       = np.array([[[ 58.12,  55.30,  55.82]]])
+        elif 'SED2' in self.kwargs['datapath']:
+            self.mean      = np.array([[[126.34, 133.87, 133.72]]])
+            self.std       = np.array([[[ 45.88,  45.59,  48.13]]])
+        elif 'PASCAL-S' in self.kwargs['datapath']:
+            self.mean      = np.array([[[117.02, 112.75, 102.48]]])
+            self.std       = np.array([[[ 59.81,  58.96,  60.44]]])
+        elif 'HKU-IS' in self.kwargs['datapath']:
+            self.mean      = np.array([[[123.58, 121.69, 104.22]]])
+            self.std       = np.array([[[ 55.40,  53.55,  55.19]]])
+        elif 'SOD' in self.kwargs['datapath']:
+            self.mean      = np.array([[[109.91, 112.13,  93.90]]])
+            self.std       = np.array([[[ 53.29,  50.45,  48.06]]])
+        elif 'THUR15K' in self.kwargs['datapath']:
+            self.mean      = np.array([[[122.60, 120.28, 104.46]]])
+            self.std       = np.array([[[ 55.99,  55.39,  56.97]]])
+        elif 'SOC' in self.kwargs['datapath']:
+            self.mean      = np.array([[[120.48, 111.78, 101.27]]])
+            self.std       = np.array([[[ 58.51,  56.73,  56.38]]])
+        else:
+            #raise ValueError
+            self.mean = np.array([[[0.485*256, 0.456*256, 0.406*256]]])
+            self.std = np.array([[[0.229*256, 0.224*256, 0.225*256]]])
+
+    def __getattr__(self, name):
+        if name in self.kwargs:
+            return self.kwargs[name]
+        else:
+            return None
+
+
+class Data(Dataset):
+    def __init__(self, cfg):
+        with open(os.path.join(cfg.datapath , cfg.mode+'.txt'), 'r') as lines:
+            self.samples = []
+            for line in lines:
+                imagepath = os.path.join(cfg.datapath, 'image', line.strip() + '.jpg')
+                maskpath  = os.path.join(cfg.datapath, 'mask',  line.strip() + '.png')
+                self.samples.append([imagepath, maskpath])
+
+        if cfg.mode == 'train':
+            self.transform = transform.Compose( transform.Normalize(mean=cfg.mean, std=cfg.std),
+                                                transform.Resize(320, 320),
+                                                transform.RandomHorizontalFlip(),
+                                                transform.RandomCrop(288,288),
+                                                transform.ToTensor())
+        elif cfg.mode == 'test':
+            self.transform = transform.Compose( transform.Normalize(mean=cfg.mean, std=cfg.std),
+                                                transform.Resize(320, 320),
+                                                transform.ToTensor())
+        else:
+            raise ValueError
+
+    def __getitem__(self, idx):
+        imagepath, maskpath = self.samples[idx]
+        o_image = cv2.imread(imagepath).astype(np.float32)
+        image               = o_image[:,:,::-1]
+        mask                = cv2.imread(maskpath).astype(np.float32)[:,:,::-1]
+        H, W, C             = mask.shape
+        image, mask         = self.transform(image, mask)
+        return o_image, image, mask, (H, W), maskpath.split('/')[-1]
+
+    def __len__(self):
+        return len(self.samples)
+
+class SODDataLoader(object):
+    def __init__(self, loader, cfg):
+        self.loader = iter(loader)
+        self.cfg = cfg
+        if cfg.cuda:
+            self.stream = torch.cuda.Stream()
+        self.preload()
+
+
+    def preload(self):
+        try:
+            self.next_input, self.next_target, _, _ = next(self.loader)
+        except StopIteration:
+            self.next_input = None
+            self.next_target = None
+            return
+        if self.cfg.cuda:
+            with torch.cuda.stream(self.stream):
+                self.next_input = self.next_input.cuda(non_blocking=True)
+                self.next_target = self.next_target.cuda(non_blocking=True)
+        self.next_input = self.next_input.float()  # if need
+        self.next_target = self.next_target.float()  # if need
+
+    def next(self):
+        if self.cfg.cuda:
+            torch.cuda.current_stream().wait_stream(self.stream)
+        input = self.next_input
+        target = self.next_target
+        self.preload()
+        return input, target
+
+
