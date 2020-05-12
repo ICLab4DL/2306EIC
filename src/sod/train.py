@@ -13,7 +13,7 @@ import logging as logger
 from lib.dataset import SODDataLoader
 
 TAG = "lizhengdao"
-# ROOT_PATH = "/li_zhengdao/GCPANet"
+# ROOT_PATH = "/li_zhengdao/SODNet"
 ROOT_PATH = "."
 SAVE_PATH = ROOT_PATH + "/save_path"
 logger.basicConfig(level=logger.INFO, format='%(levelname)s %(asctime)s %(filename)s: %(lineno)d] %(message)s',
