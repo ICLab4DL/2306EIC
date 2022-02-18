@@ -1,5 +1,5 @@
-# 2306EIC
+# 2306EIC: Image Inpaiting
 Labour:
-Li Zhengdao,Liu Jian
+Li Zhengdao and Liu Jian.
 
 Our source codes are in different dir seperately.
