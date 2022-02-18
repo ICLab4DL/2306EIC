@@ -1,5 +1,5 @@
-# 2306EIC: Image Inpaiting
+# 2306EIC: Saliency Object Inpaiting
 Labour:
-Li Zhengdao and Liu Jian.
+Li Zhengdao for saliency object detection and Liu Jian for inpaiting.
 
 Our source codes are in different dir seperately.
